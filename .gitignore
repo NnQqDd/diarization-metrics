@@ -1,0 +1,8 @@
+diarization/
+__pycache__/
+.venv/
+*.bin
+*.pth
+*.pt
+*.extra
+*.extra.*
