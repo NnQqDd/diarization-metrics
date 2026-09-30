@@ -169,6 +169,11 @@ def parse_args() -> argparse.Namespace:
         help="Skip overlapping speech regions in DER (default: score them)",
     )
     parser.add_argument(
+        "--skip-zeros",
+        action="store_true",
+        help="Skip files with zero speech in reference or hypothesis (default: score them)",
+    )
+    parser.add_argument(
         "--min-off",
         type=float,
         default=1e9,
@@ -217,11 +222,12 @@ def main() -> None:
     print(f"hypothesis: {args.output_path} ({len(hypothesis_files)} rttm)")
     print(f"paired    : {len(paired)}")
     print(f"post      : min_off={args.min_off} min_on={args.min_on}")
-    print(f"DER       : collar={args.collar} skip_overlap={args.skip_overlap}")
+    print(f"DER       : collar={args.collar} skip_overlap={args.skip_overlap} skip_zeros={args.skip_zeros}")
 
     metric = DiarizationErrorRate(collar=args.collar, skip_overlap=args.skip_overlap)
     ders: list[float] = []
     errors: list[tuple[str, str]] = []
+    zeros: list[str] = []
 
     for name in tqdm(paired, unit="file"):
         uri = Path(name).stem
@@ -236,6 +242,16 @@ def main() -> None:
                 min_off=args.min_off,
                 min_on=args.min_on,
             )
+            if not ref_segments or not hyp_segments:
+                zeros.append(name)
+                if args.skip_zeros:
+                    if args.per_file:
+                        tqdm.write(
+                            f"{uri}  SKIPPED (zero speech)  "
+                            f"ref {len(ref_segments)}seg  hyp {len(hyp_segments)}seg"
+                        )
+                    continue
+
             components = metric(
                 segments_to_annotation(ref_segments, uri),
                 segments_to_annotation(hyp_segments, uri),
@@ -266,6 +282,7 @@ def main() -> None:
     print("\n========== SUMMARY ==========")
     print(f"scored       : {len(ders)}")
     print(f"errors       : {len(errors)}")
+    print(f"zeros        : {len(zeros)}")
     print(f"missing hyp  : {len(missing_hyp)}")
     print(f"extra hyp    : {len(missing_ref)}")
     if mean_der is not None:
@@ -283,6 +300,7 @@ def main() -> None:
         suffix = "" if len(names) <= 10 else f" ... (+{len(names) - 10})"
         print(f"{title}: {shown}{suffix}")
 
+    _preview("zeros", zeros)
     _preview("missing hyp", missing_hyp)
     _preview("extra hyp", missing_ref)
 
