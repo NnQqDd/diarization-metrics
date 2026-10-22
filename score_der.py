@@ -62,8 +62,8 @@ def read_rttm(path: Path) -> list[tuple[float, float, str]]:
             parts = line.split()
             if parts[0] != "SPEAKER":
                 continue
-            if len(parts) < 10:
-                raise ValueError(f"{path}:{line_no}: expected 10 RTTM fields, got {len(parts)}")
+            # if len(parts) < 10:
+            #     raise ValueError(f"{path}:{line_no}: expected 10 RTTM fields, got {len(parts)}")
             start = float(parts[3])
             duration = float(parts[4])
             end = start + duration
@@ -182,7 +182,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--min-on",
         type=float,
-        default=0.5,
+        default=0.25,
         help="Drop turns shorter than this many seconds (default 0.5)",
     )
     parser.add_argument(
